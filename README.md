@@ -1,4 +1,4 @@
-# Cupshax
+# CUPSHax
 
 Quick proof of concept for the recent CUPS exploit. I was planning to clean it up a lot more, but the embargo was lifted a lot sooner than expected, so the code is a bit rushed.
 
@@ -13,17 +13,18 @@ This PoC uses dns-sd printer discovery, so the target must be able to receive th
 The exploit uses `zeroconf` and `ippserver`, both can be installed via pip.
 
 ```
-usage: cupshax.py [-h] [--name NAME] --ip IP [--command COMMAND] [--port PORT]
+usage: cupshax.py [-h] [--name NAME] --ip IP [--command COMMAND] [--port PORT] [--base64 | --no-base64]
 
-A script for executing commands remotely
+A CUPS PPD injection PoC
 
 options:
-  -h, --help         show this help message and exit
-  --name NAME        The name to use (default: RCE Printer)
-  --ip IP            The IP address of the machine running this script
-  --command COMMAND  The command to execute (default: 'touch /tmp/pwn')
-  --port PORT        The port to connect on (default: 8631)
-
+  -h, --help            show this help message and exit
+  --name NAME           The name to use (default: RCE Printer)
+  --ip IP               The IP address of the machine running this script
+  --command COMMAND     The command to execute (default: 'touch /tmp/pwn')
+  --port PORT           The port to connect on (default: 8631)
+  --base64, --no-base64
+                        Wrap the command in base64 (default: enabled)
 ```
 
 For example:
